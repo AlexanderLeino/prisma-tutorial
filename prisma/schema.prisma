@@ -14,20 +14,55 @@ datasource db {
 }
 
 model User {
-  id          Int     @id @default(autoincrement())
-  name        String
-  email       String
-  isAdmin     Boolean
-  preferences Json
-  blob        Bytes
-  Post        Post[]
+  id             String          @id @default(uuid())
+  name           String
+  age            Int
+  email          String          @unique
+  role           Role            @default(BASIC)
+  preferences    Json?
+  // "?" means it optional
+  blob           Bytes?
+  favoritePosts  Post[]          @relation("FavoritePosts")
+  writtenPosts   Post[]          @relation("WrittenPosts")
+  userPreference UserPreference?
+
+  // The array in Post[] is considered a field modifier
+  @@unique([age, name])
+  @@index([email])
+}
+
+model UserPreference {
+  id           String  @id @default(uuid())
+  emailUpdates Boolean
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String  @unique
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
-  rating    Float
-  createdAt DateTime
-  updatedAt DateTime
-  author    User     @relation(fields: [userId], references: [id])
-  userId    Int
+  id            String     @id @default(uuid())
+  title         String
+  averageRating Float?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  author        User       @relation("WrittenPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  authorId      String
+  favoritedBy   User?      @relation("FavoritePosts", fields: [favoritedById], references: [id], onDelete: Cascade)
+  favoritedById String?
+  // Different types of realtions can include: one to many, many to many, one to one
+  userId        String
+  categories    Category[]
+
+  // @@id([title, authorId])
+  // Above is called a composite Id it replaces the id field and ensures that each post must not share the same title and authorId
+}
+
+model Category {
+  id    String @id @default(uuid())
+  posts Post[]
+  name  String @unique
+}
+
+enum Role {
+  BASIC
+  ADMIN
 }
